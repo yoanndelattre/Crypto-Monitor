@@ -70,13 +70,15 @@ def fetch_positions(wallet_address):
                 liquidation_px_raw = pos.get("liquidationPx")
                 liquidation_px = float(liquidation_px_raw) if liquidation_px_raw is not None else None
                 leverage = pos.get("leverage", {}).get("value", 0)
+                direction = "long" if size > 0 else "short"
                 positions[coin] = {
                     "size": size,
                     "entry": entry_px,
                     "mark": None,
                     "unrealizedPnl": unrealized_pnl,
                     "liquidationPx": liquidation_px,
-                    "leverage": leverage
+                    "leverage": leverage,
+                    "direction": direction
                 }
         return positions
     except Exception as e:
@@ -88,13 +90,11 @@ def analyze(wallet_name, wallet_address, current, previous):
     for asset in current:
         pos = current[asset]
         liquidation_px = pos.get("liquidationPx")
+        direction = pos.get("direction", "inconnue")
         if asset not in previous:
-            if liquidation_px is not None:
-                liquidation_str = f"{liquidation_px:.2f}"
-            else:
-                liquidation_str = "N/A"
+            liquidation_str = f"{liquidation_px:.2f}" if liquidation_px is not None else "N/A"
             send_discord_message(
-                f"📈 **{wallet_name}** a ouvert une nouvelle position sur **{asset}**\n"
+                f"📈 **{wallet_name}** a ouvert une nouvelle position **{direction.upper()}** sur **{asset}**\n"
                 f"• Taille: {pos['size']} $\n"
                 f"• Prix d'entrée: {pos['entry']:.2f}\n"
                 f"• Liquidation: {liquidation_str}"
