@@ -67,6 +67,7 @@ def fetch_positions(wallet_address):
                 coin = pos.get("coin")
                 entry_px = float(pos.get("entryPx", 0))
                 unrealized_pnl = float(pos.get("unrealizedPnl", 0))
+                positionValue = float(pos.get("positionValue", 0))
                 liquidation_px_raw = pos.get("liquidationPx")
                 liquidation_px = float(liquidation_px_raw) if liquidation_px_raw is not None else None
                 leverage = pos.get("leverage", {}).get("value", 0)
@@ -76,6 +77,7 @@ def fetch_positions(wallet_address):
                     "entry": entry_px,
                     "mark": None,
                     "unrealizedPnl": unrealized_pnl,
+                    "positionValue": positionValue,
                     "liquidationPx": liquidation_px,
                     "leverage": leverage,
                     "direction": direction
@@ -95,7 +97,8 @@ def analyze(wallet_name, wallet_address, current, previous):
             liquidation_str = f"{liquidation_px:.2f}" if liquidation_px is not None else "N/A"
             send_discord_message(
                 f"📈 **{wallet_name}** a ouvert une nouvelle position **{direction.upper()}** sur **{asset}**\n"
-                f"• Taille: {pos['size']} $\n"
+                f"• Taille: {pos['size']}\n"
+                f"• Valeur de la position: {pos['positionValue']} $\n"
                 f"• Prix d'entrée: {pos['entry']:.2f}\n"
                 f"• Liquidation: {liquidation_str}"
             )
