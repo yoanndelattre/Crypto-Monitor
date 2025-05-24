@@ -1,0 +1,12 @@
+services:
+  crypto-monitor:
+    image: test:latest
+    container_name: crypto-monitor
+    hostname: crypto-monitor
+    restart: always
+    volumes:
+      - crypto-monitor_data:/data
+      - ./wallets.json:./wallets.json
+
+volumes:
+  monitor_data:
