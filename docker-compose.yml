@@ -7,8 +7,8 @@ services:
     env_file:
       - .env
     volumes:
-      - crypto-monitor_data:/data
-      - ./wallets.json:./wallets.json
+      - crypto-monitor_data:/app/data
+      - ./wallets.json:/app/wallets.json
 
 volumes:
-  monitor_data:
+  crypto-monitor_data:

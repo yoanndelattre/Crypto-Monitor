@@ -48,16 +48,15 @@ def save_state(state):
 # === API Fetch ===
 def fetch_positions(wallet_address):
     try:
-        payload = { # This is the JSON body to be sent
+        payload = {
             "type": "clearinghouseState",
             "user": wallet_address
         }
-        headers = {"Content-Type": "application/json"} # Required for sending JSON body
+        headers = {"Content-Type": "application/json"}
 
-        # Change back to requests.post, but send 'json' argument
         response = requests.post(API_INFO_URL, json=payload, headers=headers)
-        print(response.status_code, response.text) # Print status code and raw text for full debugging
-        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
+        print(response.status_code, response.text)
+        response.raise_for_status()
 
         data = response.json()
         positions = {}
@@ -66,13 +65,18 @@ def fetch_positions(wallet_address):
             size = float(pos.get("positionValue", 0))
             if size > 0:
                 coin = pos.get("coin")
+                entry_px = float(pos.get("entryPx", 0))
+                unrealized_pnl = float(pos.get("unrealizedPnl", 0))
+                liquidation_px_raw = pos.get("liquidationPx")
+                liquidation_px = float(liquidation_px_raw) if liquidation_px_raw is not None else None
+                leverage = pos.get("leverage", {}).get("value", 0)
                 positions[coin] = {
                     "size": size,
-                    "entry": float(pos.get("entryPx", 0)),
-                    "mark": None,  # Pas dans l'exemple, on peut chercher ailleurs ou mettre None
-                    "unrealizedPnl": float(pos.get("unrealizedPnl", 0)),
-                    "liquidationPx": float(pos.get("liquidationPx", 0)),
-                    "leverage": pos.get("leverage", {}).get("value", 0)
+                    "entry": entry_px,
+                    "mark": None,
+                    "unrealizedPnl": unrealized_pnl,
+                    "liquidationPx": liquidation_px,
+                    "leverage": leverage
                 }
         return positions
     except Exception as e:
