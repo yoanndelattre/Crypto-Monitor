@@ -1,6 +1,6 @@
 services:
   crypto-monitor:
-    image: test:latest
+    image: ghcr.io/yoanndelattre/crypto-monitor:main
     container_name: crypto-monitor
     hostname: crypto-monitor
     restart: always
