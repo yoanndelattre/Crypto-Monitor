@@ -55,7 +55,6 @@ def fetch_positions(wallet_address):
         headers = {"Content-Type": "application/json"}
 
         response = requests.post(API_INFO_URL, json=payload, headers=headers)
-        print(response.status_code, response.text)
         response.raise_for_status()
 
         data = response.json()
