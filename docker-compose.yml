@@ -4,6 +4,8 @@ services:
     container_name: crypto-monitor
     hostname: crypto-monitor
     restart: always
+    env_file:
+      - .env
     volumes:
       - crypto-monitor_data:/data
       - ./wallets.json:./wallets.json
