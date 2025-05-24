@@ -95,7 +95,7 @@ def analyze(wallet_name, wallet_address, current, previous):
                 liquidation_str = "N/A"
             send_discord_message(
                 f"📈 **{wallet_name}** a ouvert une nouvelle position sur **{asset}**\n"
-                f"• Taille: {pos['size']} contrats\n"
+                f"• Taille: {pos['size']} $\n"
                 f"• Prix d'entrée: {pos['entry']:.2f}\n"
                 f"• Liquidation: {liquidation_str}"
             )
