@@ -63,7 +63,7 @@ def fetch_positions(wallet_address):
         for p in data.get("assetPositions", []):
             pos = p.get("position", {})
             size = float(pos.get("szi", 0))
-            if size > 0:
+            if size != 0:
                 coin = pos.get("coin")
                 entry_px = float(pos.get("entryPx", 0))
                 unrealized_pnl = float(pos.get("unrealizedPnl", 0))
