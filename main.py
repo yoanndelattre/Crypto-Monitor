@@ -75,7 +75,6 @@ def fetch_positions(wallet_address):
                 positions[coin] = {
                     "size": size,
                     "entry": entry_px,
-                    "mark": None,
                     "unrealizedPnl": unrealized_pnl,
                     "positionValue": positionValue,
                     "liquidationPx": liquidation_px,
