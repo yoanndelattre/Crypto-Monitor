@@ -17,7 +17,7 @@ logging.basicConfig(
 # === Configuration ===
 WEBHOOK_URL_DISCORD = os.environ['WEBHOOK_URL_DISCORD']   # Ton Webhook Discord
 DB_FILE = "data/state.db"
-WALLETS_FILE = "wallets.json"
+WALLETS_FILE = "./wallets.json"
 API_INFO_URL = "https://api.hyperliquid.xyz/info" # Specific URL for info endpoint
 
 # === Initialisation base de données ===
