@@ -153,6 +153,8 @@ def analyze(wallet_name, wallet_address, current, previous):
         pos = current[asset]
         liquidation_px = pos.get("liquidationPx")
         direction = pos.get("direction", "inconnue")
+        size = pos["size"]
+
         if asset not in previous:
             logging.info(f"Nouvelle position détectée pour {wallet_name} sur {asset}")
             liquidation_str = f"{liquidation_px:.2f}" if liquidation_px is not None else "N/A"
@@ -163,6 +165,20 @@ def analyze(wallet_name, wallet_address, current, previous):
                 f"• Prix d'entrée: {pos['entry']:.2f}\n"
                 f"• Liquidation: {liquidation_str}"
             )
+        else:
+            # Détection de scaling
+            previous_size = previous[asset]["size"]
+            if size != previous_size:
+                change = size - previous_size
+                action = "↗️ Scaling **IN**" if change > 0 else "↘️ Scaling **OUT**"
+                logging.info(f"Modification de la taille détectée pour {wallet_name} sur {asset} ({action})")
+                send_discord_message(
+                    f"{action} pour **{wallet_name}** sur **{asset}**\n"
+                    f"• Ancienne taille: {previous_size}\n"
+                    f"• Nouvelle taille: {size}\n"
+                    f"• Direction: {direction.upper()}\n"
+                    f"• Entrée: {pos['entry']:.2f} | Liquidation: {liquidation_px if liquidation_px else 'N/A'}"
+                )
 
     # Détection de fermetures ou liquidations
     for asset in previous:
