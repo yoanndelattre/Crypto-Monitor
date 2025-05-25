@@ -3,6 +3,16 @@ import requests
 import json
 import os
 import sqlite3
+import logging
+
+# === Logging ===
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+    ]
+)
 
 # === Configuration ===
 WEBHOOK_URL_DISCORD = os.environ['WEBHOOK_URL_DISCORD']   # Ton Webhook Discord
@@ -12,6 +22,7 @@ API_INFO_URL = "https://api.hyperliquid.xyz/info" # Specific URL for info endpoi
 
 # === Initialisation base de données ===
 def init_db():
+    logging.info("Initialisation de la base de données...")
     os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -31,25 +42,31 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
+    logging.info("Base de données prête.")
 
 # === Wallets ===
 def load_wallets():
     try:
+        logging.info("Chargement des wallets...")
         with open(WALLETS_FILE, "r") as f:
+            wallets = json.load(f)
+            logging.info(f"{len(wallets)} wallet(s) chargé(s).")
             return json.load(f)
     except Exception as e:
-        print("Erreur chargement wallets.json :", e)
+        logging.error(f"Erreur chargement wallets.json : {e}")
         return {}
 
 # === Discord ===
 def send_discord_message(message):
     try:
+        logging.info(f"Envoi Discord : {message[:60]}...")
         requests.post(WEBHOOK_URL_DISCORD, json={"content": message})
     except Exception as e:
-        print("Erreur Discord:", e)
+        logging.error(f"Erreur envoi Discord : {e}")
 
 # === Sauvegarde SQLite ===
 def load_state(wallet_address):
+    logging.info(f"Chargement de l'état pour {wallet_address}...")
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("SELECT coin, size, entry, unrealizedPnl, positionValue, liquidationPx, leverage, direction FROM positions WHERE wallet = ?", (wallet_address,))
@@ -67,9 +84,11 @@ def load_state(wallet_address):
             "leverage": row[6],
             "direction": row[7]
         }
+    logging.info(f"{len(state)} position(s) chargée(s) pour {wallet_address}.")
     return state
 
 def save_state(wallet_address, positions):
+    logging.info(f"Sauvegarde de l'état pour {wallet_address}...")
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     # Supprimer les anciennes positions
@@ -86,10 +105,12 @@ def save_state(wallet_address, positions):
         ))
     conn.commit()
     conn.close()
+    logging.info(f"État sauvegardé pour {wallet_address} ({len(positions)} position(s)).")
 
 # === API Fetch ===
 def fetch_positions(wallet_address):
     try:
+        logging.info(f"Requête des positions pour {wallet_address}...")
         payload = {
             "type": "clearinghouseState",
             "user": wallet_address
@@ -122,9 +143,10 @@ def fetch_positions(wallet_address):
                     "leverage": leverage,
                     "direction": direction
                 }
+        logging.info(f"{len(positions)} position(s) active(s) pour {wallet_address}.")
         return positions
     except Exception as e:
-        print("Erreur API pour", wallet_address, ":", e)
+        logging.error(f"Erreur API pour {wallet_address} : {e}")
         return {}
 
 # === Analyse des changements ===
@@ -134,6 +156,7 @@ def analyze(wallet_name, wallet_address, current, previous):
         liquidation_px = pos.get("liquidationPx")
         direction = pos.get("direction", "inconnue")
         if asset not in previous:
+            logging.info(f"Nouvelle position détectée pour {wallet_name} sur {asset}")
             liquidation_str = f"{liquidation_px:.2f}" if liquidation_px is not None else "N/A"
             send_discord_message(
                 f"📈 **{wallet_name}** a ouvert une nouvelle position **{direction.upper()}** sur **{asset}**\n"
@@ -152,6 +175,7 @@ def analyze(wallet_name, wallet_address, current, previous):
             # For now, it's an estimation based on a significant negative PnL relative to initial capital at risk
             if last["unrealizedPnl"] < -abs(last["entry"] - last["liquidationPx"]) * last["size"] * 0.95:
                 reason = "💥 Liquidation probable"
+            logging.info(f"Fermeture détectée pour {wallet_name} sur {asset} ({reason})")
             send_discord_message(
                 f"{reason} pour **{wallet_name}** sur **{asset}**\n"
                 f"• Taille précédente: {last['size']} à {last['entry']:.2f}"
@@ -159,14 +183,17 @@ def analyze(wallet_name, wallet_address, current, previous):
 
 # === Boucle principale ===
 def monitor():
+    logging.info("Démarrage de la surveillance...")
     init_db()
     while True:
         wallets = load_wallets()
         for name, address in wallets.items():
+            logging.info(f"Vérification de {name} ({address})...")
             current_positions = fetch_positions(address)
             previous_positions = load_state(address)
             analyze(name, address, current_positions, previous_positions)
             save_state(address, current_positions)
+        logging.info("Pause de 10 secondes...\n")
         time.sleep(10)
 
 # === Lancement ===
