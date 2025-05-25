@@ -21,8 +21,8 @@ def init_db():
             coin TEXT,
             size REAL,
             entry REAL,
-            mark REAL,
             unrealizedPnl REAL,
+            positionValue REAL,
             liquidationPx REAL,
             leverage REAL,
             direction TEXT,
@@ -52,7 +52,7 @@ def send_discord_message(message):
 def load_state(wallet_address):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT coin, size, entry, mark, unrealizedPnl, liquidationPx, leverage, direction FROM positions WHERE wallet = ?", (wallet_address,))
+    cursor.execute("SELECT coin, size, entry, unrealizedPnl, positionValue, liquidationPx, leverage, direction FROM positions WHERE wallet = ?", (wallet_address,))
     rows = cursor.fetchall()
     conn.close()
     state = {}
@@ -61,8 +61,8 @@ def load_state(wallet_address):
         state[coin] = {
             "size": row[1],
             "entry": row[2],
-            "mark": row[3],
-            "unrealizedPnl": row[4],
+            "unrealizedPnl": row[3],
+            "positionValue": row[4],
             "liquidationPx": row[5],
             "leverage": row[6],
             "direction": row[7]
@@ -76,12 +76,12 @@ def save_state(wallet_address, positions):
     cursor.execute("DELETE FROM positions WHERE wallet = ?", (wallet_address,))
     for coin, pos in positions.items():
         cursor.execute('''
-            INSERT INTO positions (wallet, coin, size, entry, mark, unrealizedPnl, liquidationPx, leverage, direction)
+            INSERT INTO positions (wallet, coin, size, entry, unrealizedPnl, positionValue, liquidationPx, leverage, direction)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             wallet_address, coin,
-            pos["size"], pos["entry"], pos["mark"],
-            pos["unrealizedPnl"], pos["liquidationPx"],
+            pos["size"], pos["entry"],
+            pos["unrealizedPnl"], pos["positionValue"], pos["liquidationPx"],
             pos["leverage"], pos["direction"]
         ))
     conn.commit()
