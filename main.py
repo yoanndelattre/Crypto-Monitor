@@ -2,12 +2,35 @@ import time
 import requests
 import json
 import os
+import sqlite3
 
 # === Configuration ===
 WEBHOOK_URL_DISCORD = os.environ['WEBHOOK_URL_DISCORD']   # Ton Webhook Discord
-SAVE_FILE = "data/state.json"
+DB_FILE = "data/state.db"
 WALLETS_FILE = "wallets.json"
 API_INFO_URL = "https://api.hyperliquid.xyz/info" # Specific URL for info endpoint
+
+# === Initialisation base de données ===
+def init_db():
+    os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS positions (
+            wallet TEXT,
+            coin TEXT,
+            size REAL,
+            entry REAL,
+            mark REAL,
+            unrealizedPnl REAL,
+            liquidationPx REAL,
+            leverage REAL,
+            direction TEXT,
+            PRIMARY KEY (wallet, coin)
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
 # === Wallets ===
 def load_wallets():
@@ -25,25 +48,44 @@ def send_discord_message(message):
     except Exception as e:
         print("Erreur Discord:", e)
 
-# === JSON Storage ===
-def load_state():
-    if not os.path.exists(SAVE_FILE):
-        with open(SAVE_FILE, "w") as f:
-            json.dump({}, f)
-        return {}
-    try:
-        with open(SAVE_FILE, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        print("Erreur chargement state.json :", e)
-        return {}
+# === Sauvegarde SQLite ===
+def load_state(wallet_address):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT coin, size, entry, mark, unrealizedPnl, liquidationPx, leverage, direction FROM positions WHERE wallet = ?", (wallet_address,))
+    rows = cursor.fetchall()
+    conn.close()
+    state = {}
+    for row in rows:
+        coin = row[0]
+        state[coin] = {
+            "size": row[1],
+            "entry": row[2],
+            "mark": row[3],
+            "unrealizedPnl": row[4],
+            "liquidationPx": row[5],
+            "leverage": row[6],
+            "direction": row[7]
+        }
+    return state
 
-def save_state(state):
-    try:
-        with open(SAVE_FILE, "w") as f:
-            json.dump(state, f)
-    except Exception as e:
-        print("Erreur sauvegarde:", e)
+def save_state(wallet_address, positions):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    # Supprimer les anciennes positions
+    cursor.execute("DELETE FROM positions WHERE wallet = ?", (wallet_address,))
+    for coin, pos in positions.items():
+        cursor.execute('''
+            INSERT INTO positions (wallet, coin, size, entry, mark, unrealizedPnl, liquidationPx, leverage, direction)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            wallet_address, coin,
+            pos["size"], pos["entry"], pos["mark"],
+            pos["unrealizedPnl"], pos["liquidationPx"],
+            pos["leverage"], pos["direction"]
+        ))
+    conn.commit()
+    conn.close()
 
 # === API Fetch ===
 def fetch_positions(wallet_address):
@@ -117,19 +159,14 @@ def analyze(wallet_name, wallet_address, current, previous):
 
 # === Boucle principale ===
 def monitor():
-    # Create the 'data' directory if it doesn't exist
-    os.makedirs(os.path.dirname(SAVE_FILE), exist_ok=True)
-    state = load_state()
-
+    init_db()
     while True:
         wallets = load_wallets()
         for name, address in wallets.items():
             current_positions = fetch_positions(address)
-            previous_positions = state.get(address, {})
+            previous_positions = load_state(address)
             analyze(name, address, current_positions, previous_positions)
-            state[address] = current_positions
-
-        save_state(state)
+            save_state(address, current_positions)
         time.sleep(10)
 
 # === Lancement ===
