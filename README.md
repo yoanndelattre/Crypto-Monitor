@@ -36,7 +36,7 @@ Make sure you have the following installed:
 git clone https://github.com/yoanndelattre/Crypto-Monitor.git
 cd Crypto-Monitor
 ```
-3. Configure your wallet addresses in wallets.json:
+2. Configure your wallet addresses in wallets.json:
 
 ```bash
 {
@@ -45,7 +45,7 @@ cd Crypto-Monitor
 }
 ```
 
-4. Environment Variables
+3. Environment Variables
 
 Create a `.env` file in the project root with the following variable:
 
@@ -54,7 +54,7 @@ WEBHOOK_URL_DISCORD=your_discord_webhook_url_here
 ```
 This variable is required to send wallet position alerts to Discord. You can generate a webhook URL in your Discord server settings.
 
-5. Run the Docker container:
+4. Run the Docker container:
 ```bash
 docker-compose up
 ```
